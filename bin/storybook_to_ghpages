@@ -19,7 +19,8 @@ var defaultConfig = {
 var config = Object.assign({}, defaultConfig, packageJson['storybook-deployer'] || defaultConfig);
 
 var GIT_REMOTE = argv['remote'] || 'origin';
-var TARGET_BRANCH = argv['branch'] || "gh-pages";
+var TARGET_BRANCH = "gh-pages";
+var BRANCH_DIR = argv['branch']
 var SOURCE_BRANCH = argv['source-branch'] || 'master';
 var NPM_SCRIPT = argv['script'] || 'build-storybook';
 var CI_DEPLOY = Boolean(argv['ci']);
@@ -50,6 +51,13 @@ if (!SKIP_BUILD) {
 
 // go to the out directory and create a *new* Git repo
 shell.cd(OUTPUT_DIR);
+// copy all files in the branch directory
+shell.mkdir('-p', BRANCH_DIR);
+var files_to_move = shell.ls('-l')
+files_to_move.forEach(function(f) {
+  shell.mv(f.name, BRANCH_DIR)
+})
+
 publishUtils.exec('git init');
 
 // inside this git repo we'll pretend to be a new user
