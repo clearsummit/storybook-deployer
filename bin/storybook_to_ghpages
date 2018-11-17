@@ -89,6 +89,7 @@ if (CI_DEPLOY) {
 publishUtils.exec('git push')
 shell.cd('..');
 shell.rm('-rf', OUTPUT_DIR);
+shell.rm('-rf', TARGET_BRANCH);
 
 if (TARGET_BRANCH !== 'gh-pages') {
   var rawgit_url = GIT_URL.replace('github.com', 'rawgit.com').replace('.git', '/') +
