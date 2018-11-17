@@ -49,26 +49,27 @@ if (!SKIP_BUILD) {
   }
 }
 
-// go to the out directory and create a *new* Git repo
-shell.cd(OUTPUT_DIR);
-// copy all files in the branch directory
-shell.mkdir('-p', BRANCH_DIR);
-var files_to_move = shell.ls('-l')
-files_to_move.forEach(function(f) {
-  shell.mv(f.name, BRANCH_DIR)
-})
-
+// Set up github pages
+shell.mkdir(TARGET_BRANCH)
+shell.cd(TARGET_BRANCH)
 publishUtils.exec('git init');
 
-// inside this git repo we'll pretend to be a new user
-publishUtils.exec('git config user.name ' + JSON.stringify(config.gitUsername));
-publishUtils.exec('git config user.email ' + JSON.stringify(config.gitEmail));
+publishUtils.exec('git remote add origin ' + GIT_URL);
 
-// disable GPG signing
-publishUtils.exec('git config commit.gpgsign false');
+publishUtils.exec('git fetch');
+publishUtils.exec('git checkout ' + TARGET_BRANCH);
+shell.mkdir('-p', BRANCH_DIR);
+// go to the out directory
+shell.cd(path.join('..', OUTPUT_DIR));
 
-// The first and only commit to this new Git repo contains all the
-// files present with the commit message "Deploy to GitHub Pages".
+// copy all files in the branch directory
+var files_to_move = shell.ls('-l')
+files_to_move.forEach(function(f) {
+  shell.mv(f.name, path.join('..',TARGET_BRANCH, BRANCH_DIR))
+})
+
+shell.cd(path.join('..', TARGET_BRANCH));
+
 publishUtils.exec('git add .');
 publishUtils.exec('git commit -m ' + JSON.stringify(config.commitMessage));
 
@@ -85,7 +86,7 @@ if (CI_DEPLOY) {
   }
 }
 
-publishUtils.exec('git push --force --quiet ' + GIT_URL + ' ' + SOURCE_BRANCH + ':' + TARGET_BRANCH)
+publishUtils.exec('git push')
 shell.cd('..');
 shell.rm('-rf', OUTPUT_DIR);
 
