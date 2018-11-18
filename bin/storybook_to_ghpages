@@ -2,6 +2,7 @@
 
 var shell = require('shelljs');
 var publishUtils = require('../src/utils');
+var fs = require('fs')
 var path = require('path');
 var packageJson = require(path.resolve('./package.json'));
 var argv = require('yargs').argv;
@@ -103,6 +104,13 @@ storybook_dirs.forEach(sb => {
   }
 })
 // End Cleanup
+
+// Write out links
+var baseURL = publishUtils.getGHPagesUrl(GIT_URL)
+const indexHTML = publishUtils.createHTML(baseURL, branches.filter(b => b !== 'gh-pages'))
+fs.writeFileSync('index.html', indexHTML); 
+
+// End Write out links
 
 publishUtils.exec('git add .');
 publishUtils.exec('git commit -m ' + JSON.stringify(config.commitMessage));
