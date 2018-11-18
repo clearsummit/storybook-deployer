@@ -71,6 +71,7 @@ files_to_move.forEach(function(f) {
 shell.cd(path.join('..', TARGET_BRANCH));
 
 // Cleanup any deleted branches
+
 var dirs_to_construct = shell.ls('-l')
 
 const storybook_files = ['favicon.ico', 'iframe.html', 'index.html', 'static'].join('')
@@ -87,6 +88,15 @@ var list_sub_dirs = (a, b = '') => {
     })
   }
 }
+
+var branches = shell.exec('git branch')
+branches = branches.split('\n')
+branches = branches.map(function (name) {
+  name = name.replace('*', '').trim()
+  return name
+}).filter(function (name) {
+  return !!name
+})
 
 var storybook_dirs = list_sub_dirs('./').flat(Infinity)
 storybook_dirs.forEach(sb => {
