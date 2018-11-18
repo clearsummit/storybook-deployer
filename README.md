@@ -21,6 +21,14 @@ Then add a NPM script like this:
 
 Then you can run `npm run deploy-storybook` to deploy the Storybook to GitHub Pages.
 
+### Deploying to GitHub Pages
+This fork has been modified from the original to add specified branches by their route to GitHubPages and write out a html document with the urls to the root url. Urls are only written for branches on the remote.
+
+It also removes deleted branches which can optionally be set to false.
+```sh 
+npm run deploy-storybook -- --cleanup-branches=false
+```
+
 ### Custom Build Configuration
 
 If you customize the build configuration with some additional params (like static file directory), then you need to expose another NPM script like this:

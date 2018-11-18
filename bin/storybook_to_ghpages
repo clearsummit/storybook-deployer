@@ -20,10 +20,11 @@ var defaultConfig = {
 var config = Object.assign({}, defaultConfig, packageJson['storybook-deployer'] || defaultConfig);
 
 var GIT_REMOTE = argv['remote'] || 'origin';
-var TARGET_BRANCH = "gh-pages";
-var BRANCH_DIR = argv['branch']
+var TARGET_BRANCH = argv['branch'] || "gh-pages";
 var SOURCE_BRANCH = argv['source-branch'] || 'master';
 var NPM_SCRIPT = argv['script'] || 'build-storybook';
+var CLEANUP_BRANCHES_ARGV = argv['cleanup-branches'] || 'true';
+var CLEANUP_BRANCHES = CLEANUP_BRANCHES_ARGV === 'true';
 var CI_DEPLOY = Boolean(argv['ci']);
 var HOST_TOKEN_ENV_VARIABLE = argv['host-token-env-variable'] || 'GH_TOKEN';
 var HOST_TOKEN = process.env[HOST_TOKEN_ENV_VARIABLE];
@@ -60,60 +61,80 @@ branches = branches.map(function (name) {
   return !!name
 })
 
-// Set up github pages
-shell.mkdir(TARGET_BRANCH)
-shell.cd(TARGET_BRANCH)
-publishUtils.exec('git init');
+if (TARGET_BRANCH === 'gh-pages') {
+  // This customizes the original script to update github pages with storybooks from new branches
+  // and optionally cleans up old branches
+  shell.mkdir(TARGET_BRANCH)
+  shell.cd(TARGET_BRANCH)
+  publishUtils.exec('git init');
 
-publishUtils.exec('git remote add origin ' + GIT_URL);
+  publishUtils.exec('git remote add origin ' + GIT_URL);
 
-publishUtils.exec('git fetch');
-publishUtils.exec('git checkout ' + TARGET_BRANCH);
-shell.mkdir('-p', BRANCH_DIR);
-// go to the out directory
-shell.cd(path.join('..', OUTPUT_DIR));
+  publishUtils.exec('git fetch');
+  publishUtils.exec('git checkout ' + TARGET_BRANCH);
+  shell.mkdir('-p', SOURCE_BRANCH);
+  // go to the out directory
+  shell.cd(path.join('..', OUTPUT_DIR));
 
-// copy all files in the branch directory
-var files_to_move = shell.ls('-l')
-files_to_move.forEach(function(f) {
-  shell.cp('-rf', f.name, path.join('..',TARGET_BRANCH, BRANCH_DIR))
-})
+  // copy all files in the branch directory
+  var files_to_move = shell.ls('-l')
+  files_to_move.forEach(function(f) {
+    shell.cp('-rf', f.name, path.join('..',TARGET_BRANCH, SOURCE_BRANCH))
+  })
 
-shell.cd(path.join('..', TARGET_BRANCH));
+  shell.cd(path.join('..', TARGET_BRANCH));
 
-// Cleanup any deleted branches
-const storybook_files = ['favicon.ico', 'iframe.html', 'index.html', 'static'].join('')
+  // Cleanup any deleted branches
+  if (CLEANUP_BRANCHES) {
+    const storybook_files = ['favicon.ico', 'iframe.html', 'index.html', 'static'].join('')
 
-var list_sub_dirs = (a, b = '') => {
-  if (!path.extname(b)) {
-    var new_path = path.join(a, b)
-    const files = shell.ls('-l', new_path).map(f => f.name)
-    if (files.join('') == storybook_files) {
-      return new_path
+    var list_sub_dirs = (a, b = '') => {
+      if (!path.extname(b)) {
+        var new_path = path.join(a, b)
+        const files = shell.ls('-l', new_path).map(f => f.name)
+        if (files.join('') == storybook_files) {
+          return new_path
+        }
+        return files.map(b => {
+          return list_sub_dirs(new_path, b)
+        })
+      }
     }
-    return files.map(b => {
-      return list_sub_dirs(new_path, b)
+
+    var storybook_dirs = list_sub_dirs('./').flat(Infinity).filter(p => !!p)
+    storybook_dirs.forEach(sb => {
+      if (!branches.includes(sb)) {
+        shell.rm('-rf', sb)
+      }
     })
   }
+  // End Cleanup
+
+  // Write out links
+  var baseURL = publishUtils.getGHPagesUrl(GIT_URL)
+  const indexHTML = publishUtils.createHTML(baseURL, branches.filter(b => b !== 'gh-pages'))
+  fs.writeFileSync('index.html', indexHTML); 
+
+  publishUtils.exec('git add .');
+  publishUtils.exec('git commit -m ' + JSON.stringify(config.commitMessage));
+  publishUtils.exec('git push --force --quiet')
+
+  // End Write out links
+} else {
+  // go to the out directory and create a *new* Git repo
+  shell.cd(OUTPUT_DIR);
+  publishUtils.exec('git init');
+
+  // inside this git repo we'll pretend to be a new user
+  publishUtils.exec('git config user.name ' + JSON.stringify(config.gitUsername));
+  publishUtils.exec('git config user.email ' + JSON.stringify(config.gitEmail));
+
+  // disable GPG signing
+  publishUtils.exec('git config commit.gpgsign false');
+  publishUtils.exec('git add .');
+  publishUtils.exec('git commit -m ' + JSON.stringify(config.commitMessage));
+  publishUtils.exec('git push --force --quiet ' + GIT_URL + ' ' + SOURCE_BRANCH + ':' + TARGET_BRANCH)
 }
-
-var storybook_dirs = list_sub_dirs('./').flat(Infinity).filter(p => !!p)
-storybook_dirs.forEach(sb => {
-  if (!branches.includes(sb)) {
-    shell.rm('-rf', sb)
-  }
-})
-// End Cleanup
-
-// Write out links
-var baseURL = publishUtils.getGHPagesUrl(GIT_URL)
-const indexHTML = publishUtils.createHTML(baseURL, branches.filter(b => b !== 'gh-pages'))
-fs.writeFileSync('index.html', indexHTML); 
-
-// End Write out links
-
-publishUtils.exec('git add .');
-publishUtils.exec('git commit -m ' + JSON.stringify(config.commitMessage));
 
 // Force push from the current repo's source branch (master by default) to the remote
 // repo's gh-pages branch. (All previous history on the gh-pages branch
@@ -128,15 +149,15 @@ if (CI_DEPLOY) {
   }
 }
 
-publishUtils.exec('git push')
 shell.cd('..');
 shell.rm('-rf', OUTPUT_DIR);
-shell.rm('-rf', TARGET_BRANCH);
 
 if (TARGET_BRANCH !== 'gh-pages') {
   var rawgit_url = GIT_URL.replace('github.com', 'rawgit.com').replace('.git', '/') +
     TARGET_BRANCH + '/index.html';
   console.log('=> Storybook deployed to: ' + rawgit_url);
 } else {
+  // We setup a tempo repo to deploy to github pages that needs to be cleaned up
+  shell.rm('-rf', TARGET_BRANCH);
   console.log('=> Storybook deployed to: ' + publishUtils.getGHPagesUrl(GIT_URL));
 }
