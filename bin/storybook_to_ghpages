@@ -48,6 +48,16 @@ if (!SKIP_BUILD) {
     publishUtils.exec('node ./node_modules/.bin/build-storybook -o ' + OUTPUT_DIR);
   }
 }
+// Get our repo's branches
+publishUtils.exec('git fetch');
+var branches = publishUtils.exec('git ls-remote --heads origin');
+branches = branches.split('\n')
+branches = branches.map(function (name) {
+  name = name.replace(/(?:.+\srefs[\/]heads[\/])/, '').trim()
+  return name
+}).filter(function (name) {
+  return !!name
+})
 
 // Set up github pages
 shell.mkdir(TARGET_BRANCH)
@@ -65,15 +75,12 @@ shell.cd(path.join('..', OUTPUT_DIR));
 // copy all files in the branch directory
 var files_to_move = shell.ls('-l')
 files_to_move.forEach(function(f) {
-  shell.mv(f.name, path.join('..',TARGET_BRANCH, BRANCH_DIR))
+  shell.cp('-rf', f.name, path.join('..',TARGET_BRANCH, BRANCH_DIR))
 })
 
 shell.cd(path.join('..', TARGET_BRANCH));
 
 // Cleanup any deleted branches
-
-var dirs_to_construct = shell.ls('-l')
-
 const storybook_files = ['favicon.ico', 'iframe.html', 'index.html', 'static'].join('')
 
 var list_sub_dirs = (a, b = '') => {
@@ -89,16 +96,7 @@ var list_sub_dirs = (a, b = '') => {
   }
 }
 
-var branches = shell.exec('git branch')
-branches = branches.split('\n')
-branches = branches.map(function (name) {
-  name = name.replace('*', '').trim()
-  return name
-}).filter(function (name) {
-  return !!name
-})
-
-var storybook_dirs = list_sub_dirs('./').flat(Infinity)
+var storybook_dirs = list_sub_dirs('./').flat(Infinity).filter(p => !!p)
 storybook_dirs.forEach(sb => {
   if (!branches.includes(sb)) {
     shell.rm('-rf', sb)
