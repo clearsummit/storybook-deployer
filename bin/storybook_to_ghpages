@@ -116,8 +116,13 @@ if (TARGET_BRANCH === 'gh-pages') {
   fs.writeFileSync('index.html', indexHTML); 
 
   publishUtils.exec('git add .');
-  publishUtils.exec('git commit -m ' + JSON.stringify(config.commitMessage));
-  publishUtils.exec('git push --force --quiet')
+  try {
+    publishUtils.exec('git commit -m ' + JSON.stringify(config.commitMessage));
+    publishUtils.exec('git push --force --quiet')
+  } catch(e) {
+    console.log('There was an error pushing. Your story books may not have changed.')
+    console.error(e)
+  }
 
   // End Write out links
 } else {
