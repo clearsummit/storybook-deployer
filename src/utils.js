@@ -48,3 +48,10 @@ module.exports.getGHPagesUrl = function getGHPagesUrl(ghUrl) {
     </html>
     `
 };
+
+
+function flattenArray(arr1) {
+  return arr1.reduce((acc, val) => Array.isArray(val) ? acc.concat(flattenArray(val)) : acc.concat(val), []);
+}
+
+module.exports.flattenArray = flattenArray
