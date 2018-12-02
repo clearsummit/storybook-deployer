@@ -121,29 +121,27 @@ function runScript(argv) {
       const indexHTML = utils.createHTML(baseURL, branches.filter(b => b !== GH_PAGES))
       fs.writeFileSync('index.html', indexHTML);
 
-      utils.exec('git add .');
-      try {
-        utils.exec('git commit -m ' + JSON.stringify(config.commitMessage));
-        utils.exec('git push --force --quiet')
-      } catch (e) {
-        throw new Error('There was an error pushing. Your story books may not have changed. ' + e.name + ' : ' + e.message)
-      }
 
       // End Write out links
     } else {
       // go to the out directory and create a *new* Git repo
       shell.cd(OUTPUT_DIR);
       utils.exec('git init');
+    }
+    try {
+      if (CI_DEPLOY) {
+        // inside this git repo we'll pretend to be a new user
+        utils.exec('git config user.name ' + JSON.stringify(config.gitUsername));
+        utils.exec('git config user.email ' + JSON.stringify(config.gitEmail));
 
-      // inside this git repo we'll pretend to be a new user
-      utils.exec('git config user.name ' + JSON.stringify(config.gitUsername));
-      utils.exec('git config user.email ' + JSON.stringify(config.gitEmail));
-
-      // disable GPG signing
-      utils.exec('git config commit.gpgsign false');
-      utils.exec('git add .');
+        // disable GPG signing
+        utils.exec('git config commit.gpgsign false');
+      }
+      utils.exec('git add .')
       utils.exec('git commit -m ' + JSON.stringify(config.commitMessage));
-      utils.exec('git push --force --quiet ' + GIT_URL + ' ' + SOURCE_BRANCH + ':' + TARGET_BRANCH)
+      utils.exec('git push --force --quiet')
+    } catch (e) {
+      throw new Error('There was an error pushing. Your story books may not have changed. ' + e.name + ' : ' + e.message)
     }
 
     // Force push from the current repo's source branch (master by default) to the remote
