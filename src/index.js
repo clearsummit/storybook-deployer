@@ -118,7 +118,7 @@ function runScript(argv) {
 
       // Write out links
       var baseURL = utils.getGHPagesUrl(GIT_URL)
-      const indexHTML = utils.createHTML(baseURL, branches.filter(b => b !== GH_PAGES))
+      const indexHTML = utils.createHTML(branches.filter(b => b !== GH_PAGES))
       fs.writeFileSync('index.html', indexHTML);
 
 

@@ -28,7 +28,7 @@ module.exports.getGHPagesUrl = function getGHPagesUrl(ghUrl) {
   return ghPagesUrl;
 };
 
-  module.exports.createHTML = function(baseURL, links){
+  module.exports.createHTML = function(links){
     return `
     <!DOCTYPE html>
         <head>
@@ -42,7 +42,7 @@ module.exports.getGHPagesUrl = function getGHPagesUrl(ghUrl) {
         <body>
             <h1>Storybook Branch Links</h1>
             <ul>
-              ${links.map( link => `<li><a href=${baseURL + link}><p>${link}</p></a></li>`).join('')}
+              ${links.map( link => `<li><a href=${link}><p>${link}</p></a></li>`).join('')}
             </ul>
         </body>
     </html>
