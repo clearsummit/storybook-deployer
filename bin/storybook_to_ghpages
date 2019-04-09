@@ -6,7 +6,7 @@ try {
   GithubDeployer.runScript(argv)
   console.log('Deploy successful. Cleaning up.')
 } catch(e) {
-  console.log('Encountered an error. Cleaning up.' + e.name + ' : ' + e.message)
+  console.log('Encountered an error. Cleaning up. ' + e.name + ' : ' + e.message)
   
 } finally {
   GithubDeployer.cleanUp(argv)

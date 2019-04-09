@@ -82,7 +82,7 @@ function runScript(argv) {
         shell.mkdir('-p', SOURCE_BRANCH);
 
       } catch (e) {
-        throw new Error('There was an setting up a repo to push to gh-pages. ' + e.name + ' : ' + e.message)
+        throw new Error('There was an error setting up a repo to push to gh-pages. ' + e.name + ' : ' + e.message)
       }
       // copy all files in the branch directory
       var files_to_move = shell.ls('-l', path.join('..', OUTPUT_DIR))
@@ -117,7 +117,6 @@ function runScript(argv) {
       // End Cleanup
 
       // Write out links
-      var baseURL = utils.getGHPagesUrl(GIT_URL)
       const indexHTML = utils.createHTML(branches.filter(b => b !== GH_PAGES))
       fs.writeFileSync('index.html', indexHTML);
 
